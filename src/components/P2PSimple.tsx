@@ -1,5 +1,6 @@
 import * as React from 'react';
 import styled from 'styled-components';
+import { randomString } from '../utils';
 export interface P2PSimpleProps {
   title: string;
 }
@@ -10,6 +11,7 @@ export interface P2PSimpleState {
   ws: WebSocket | null;
   peer: RTCPeerConnection | null;
   localStream: MediaStream | null;
+  roomId: string;
 }
 
 const initialState: P2PSimpleState = {
@@ -18,6 +20,7 @@ const initialState: P2PSimpleState = {
   ws: null,
   peer: null,
   localStream: null,
+  roomId: randomString(9)
 };
 
 const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
@@ -41,9 +44,17 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
       <Main>
       <Title>
       <h2>{this.props.title}</h2>
-      <label htmlFor='url'>シグナリングサーバのURL:</label>
-      <input type='text' id='url' onChange={this.onChangeWsUrl.bind(this)} value={this.state.wsUrl} required />
       </Title>
+      <Inputs>
+      <Input>
+      <label htmlFor='url'>シグナリングサーバのURL:</label>
+      <input type='text' id='url' onChange={this.onChangeWsUrl.bind(this)} value={this.state.wsUrl} />
+      </Input>
+      <Input>
+      <label htmlFor='roomId'>部屋のID:</label>
+      <input type='text' id='roomId' onChange={this.onChangeRoomId.bind(this)} value={this.state.roomId} />
+      </Input>
+      </Inputs>
       <Buttons>
       <Button onClick={this.connect.bind(this)} type='button'>接続</Button>
       <Button onClick={this.disconnect.bind(this)} type='button' >切断</Button>
@@ -68,6 +79,10 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
     // ws のコールバックを定義する
     ws.onopen = () => {
       console.log('ws open()');
+      ws.send(JSON.stringify({
+        type: 'register',
+        room_id: this.state.roomId,
+      }));
       ws.onmessage = (event: MessageEvent) => {
         console.log('ws onmessage() data:', event.data);
         const message = JSON.parse(event.data);
@@ -296,6 +311,10 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
     this.setState({wsUrl: event.target.value});
   }
 
+  private onChangeRoomId(event: React.ChangeEvent<HTMLInputElement>) {
+    this.setState({roomId: event.target.value});
+  }
+
   private addIceCandidate(candidate: RTCIceCandidate) {
     console.log('add ice candidate', candidate);
     if (this.state.peer) {
@@ -320,6 +339,18 @@ const Title = styled.div`
   transform: translate(-50%, -50%);
   top: 40px;
 `;
+const Inputs = styled.div`
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  top: 80px;
+`;
+const Input = styled.div`
+  display: inline-block;
+`;
+
 const Button = styled.button`
   background-color: #4285f4;
   border: none;
@@ -338,7 +369,7 @@ const Buttons = styled.div`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  top: 120px;
+  top: 140px;
 `;
 const Videos = styled.div`
   font-size: 0;
