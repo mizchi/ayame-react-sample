@@ -48,11 +48,17 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
       <Inputs>
       <Input>
       <label htmlFor='url'>シグナリングサーバのURL:</label>
-      <input type='text' id='url' onChange={this.onChangeWsUrl.bind(this)} value={this.state.wsUrl} />
+      <input className='input' type='text' id='url' onChange={this.onChangeWsUrl.bind(this)} value={this.state.wsUrl} />
       </Input>
       <Input>
       <label htmlFor='roomId'>部屋のID:</label>
-      <input type='text' id='roomId' onChange={this.onChangeRoomId.bind(this)} value={this.state.roomId} />
+      <input
+        className='input'
+        type='text'
+        id='roomId'
+        onChange={this.onChangeRoomId.bind(this)}
+        value={this.state.roomId}
+      />
       </Input>
       </Inputs>
       <Buttons>
