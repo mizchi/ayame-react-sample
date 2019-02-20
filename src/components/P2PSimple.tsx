@@ -93,6 +93,21 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
         console.log('ws onmessage() data:', event.data);
         const message = JSON.parse(event.data);
         switch (message.type) {
+          case 'accept': {
+            console.log('Received accept ...');
+            if (!this.state.peer) {
+              console.log('make Offer');
+              this.prepareNewConnection(true);
+            } else {
+              console.warn('peer already exist.');
+            }
+            break;
+          }
+          case 'reject': {
+            console.log('Received reject ...');
+            this.disconnect();
+            break;
+          }
           case 'offer': {
             console.log('Received offer ...');
             this.setOffer(message);
@@ -122,12 +137,6 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
         }
       };
 
-      if (!this.state.peer) {
-        console.log('make Offer');
-        this.prepareNewConnection(true);
-      } else {
-        console.warn('peer already exist.');
-      }
     };
     ws.onerror = (error) => {
       console.error('ws onerror() ERROR:', error);
@@ -141,7 +150,7 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
         // peer connection を閉じる
         this.state.peer.close();
       }
-      if (this.state.ws) {
+      if (this.state.ws && this.state.ws.readyState < 2) {
         this.state.ws.close();
       }
       this.setState({peer: null, ws: null});
