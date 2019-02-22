@@ -12,6 +12,7 @@ export interface P2PSimpleState {
   peer: RTCPeerConnection | null;
   localStream: MediaStream | null;
   roomId: string;
+  clientId: string,
 }
 
 const initialState: P2PSimpleState = {
@@ -20,7 +21,8 @@ const initialState: P2PSimpleState = {
   ws: null,
   peer: null,
   localStream: null,
-  roomId: randomString(9)
+  roomId: randomString(9),
+  clientId: randomString(17)
 };
 
 const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
@@ -87,6 +89,7 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
       console.log('ws open()');
       ws.send(JSON.stringify({
         type: 'register',
+        client_id: this.state.clientId,
         room_id: this.state.roomId,
       }));
       ws.onmessage = (event: MessageEvent) => {
