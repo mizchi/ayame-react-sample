@@ -1,6 +1,7 @@
-import * as React from 'react';
-import styled from 'styled-components';
-import { randomString } from '../utils';
+import * as React from "react";
+import styled from "styled-components";
+import { randomString } from "../utils";
+
 export interface P2PSimpleProps {
   title: string;
 }
@@ -12,12 +13,12 @@ export interface P2PSimpleState {
   peer: RTCPeerConnection | null;
   localStream: MediaStream | null;
   roomId: string;
-  clientId: string,
+  clientId: string;
 }
 
 const initialState: P2PSimpleState = {
   isNegotiating: false,
-  wsUrl: 'ws://localhost:3000/ws',
+  wsUrl: "ws://localhost:3000/ws",
   ws: null,
   peer: null,
   localStream: null,
@@ -25,18 +26,20 @@ const initialState: P2PSimpleState = {
   clientId: randomString(17)
 };
 
-const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+const iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
+
 const peerConnectionConfig = {
-  iceServers,
+  iceServers
 };
 
 class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
   private localVideoRef = React.createRef<HTMLVideoElement>();
   private remoteVideoRef = React.createRef<HTMLVideoElement>();
 
+  state = initialState;
+
   constructor(props: P2PSimpleProps) {
     super(props);
-    this.state = initialState;
     this.localVideoRef = React.createRef();
     this.remoteVideoRef = React.createRef();
   }
@@ -44,33 +47,43 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
   public render() {
     return (
       <Main>
-      <Title>
-      <h2>{this.props.title}</h2>
-      </Title>
-      <Inputs>
-      <Input>
-      <label htmlFor='url'>シグナリングサーバのURL:</label>
-      <input className='input' type='text' id='url' onChange={this.onChangeWsUrl.bind(this)} value={this.state.wsUrl} />
-      </Input>
-      <Input>
-      <label htmlFor='roomId'>部屋のID:</label>
-      <input
-        className='input'
-        type='text'
-        id='roomId'
-        onChange={this.onChangeRoomId.bind(this)}
-        value={this.state.roomId}
-      />
-      </Input>
-      </Inputs>
-      <Buttons>
-      <Button onClick={this.connect.bind(this)} type='button'>接続</Button>
-      <Button onClick={this.disconnect.bind(this)} type='button' >切断</Button>
-      </Buttons>
-      <Videos>
-      <RemoteVideo ref={this.remoteVideoRef} autoPlay />
-      <LocalVideo ref={this.localVideoRef} autoPlay muted />
-      </Videos>
+        <Title>
+          <h2>{this.props.title}</h2>
+        </Title>
+        <Inputs>
+          <Input>
+            <label htmlFor="url">シグナリングサーバのURL:</label>
+            <input
+              className="input"
+              type="text"
+              id="url"
+              onChange={this.onChangeWsUrl.bind(this)}
+              value={this.state.wsUrl}
+            />
+          </Input>
+          <Input>
+            <label htmlFor="roomId">部屋のID:</label>
+            <input
+              className="input"
+              type="text"
+              id="roomId"
+              onChange={this.onChangeRoomId.bind(this)}
+              value={this.state.roomId}
+            />
+          </Input>
+        </Inputs>
+        <Buttons>
+          <Button onClick={this.connect.bind(this)} type="button">
+            接続
+          </Button>
+          <Button onClick={this.disconnect.bind(this)} type="button">
+            切断
+          </Button>
+        </Buttons>
+        <Videos>
+          <RemoteVideo ref={this.remoteVideoRef} autoPlay />
+          <LocalVideo ref={this.localVideoRef} autoPlay muted />
+        </Videos>
       </Main>
     );
   }
@@ -81,97 +94,100 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
   }
 
   public connect() {
-    this.setState({isNegotiating: false});
-  // 新規に websocket を作成
+    this.setState({ isNegotiating: false });
+    // 新規に websocket を作成
     const ws = new WebSocket(this.state.wsUrl);
     // ws のコールバックを定義する
     ws.onopen = () => {
-      console.log('ws open()');
-      ws.send(JSON.stringify({
-        type: 'register',
-        client_id: this.state.clientId,
-        room_id: this.state.roomId,
-      }));
+      console.log("ws open()");
+      ws.send(
+        JSON.stringify({
+          type: "register",
+          client_id: this.state.clientId,
+          room_id: this.state.roomId
+        })
+      );
       ws.onmessage = (event: MessageEvent) => {
-        console.log('ws onmessage() data:', event.data);
+        console.log("ws onmessage() data:", event.data);
         const message = JSON.parse(event.data);
         switch (message.type) {
-          case 'accept': {
-            console.log('Received accept ...');
+          case "accept": {
+            console.log("Received accept ...");
             if (!this.state.peer) {
-              console.log('make Offer');
+              console.log("make Offer");
               this.prepareNewConnection(true);
             } else {
-              console.warn('peer already exist.');
+              console.warn("peer already exist.");
             }
             break;
           }
-          case 'reject': {
-            console.log('Received reject ...');
+          case "reject": {
+            console.log("Received reject ...");
             this.disconnect();
             break;
           }
-          case 'offer': {
-            console.log('Received offer ...');
+          case "offer": {
+            console.log("Received offer ...");
             this.setOffer(message);
             break;
           }
-          case 'answer': {
-            console.log('Received answer ...');
+          case "answer": {
+            console.log("Received answer ...");
             this.setAnswer(message);
             break;
           }
-          case 'candidate': {
-            console.log('Received ICE candidate ...');
+          case "candidate": {
+            console.log("Received ICE candidate ...");
             const candidate = new RTCIceCandidate(message.ice);
             console.log(candidate);
             this.addIceCandidate(candidate);
             break;
           }
-          case 'close': {
-            console.log('peer is closed ...');
+          case "close": {
+            console.log("peer is closed ...");
             this.disconnect();
             break;
           }
           default: {
-            console.log('Invalid message type: ');
+            console.log("Invalid message type: ");
             break;
           }
         }
       };
-
     };
-    ws.onerror = (error) => {
-      console.error('ws onerror() ERROR:', error);
+    ws.onerror = error => {
+      console.error("ws onerror() ERROR:", error);
     };
-    this.setState({ws});
+    this.setState({ ws });
   }
 
   public disconnect(): void {
     if (this.state.peer) {
-      if (this.state.peer.iceConnectionState !== 'closed') {
+      if (this.state.peer.iceConnectionState !== "closed") {
         // peer connection を閉じる
         this.state.peer.close();
       }
       if (this.state.ws && this.state.ws.readyState < 2) {
         this.state.ws.close();
       }
-      this.setState({peer: null, ws: null});
+      this.setState({ peer: null, ws: null });
     }
     if (this.remoteVideoRef.current) {
       this.remoteVideoRef.current.srcObject = null;
     }
   }
 
-
   private async startLocalVideo() {
     if (this.localVideoRef.current) {
       try {
-        const localStream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
-        this.setState({localStream});
+        const localStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        this.setState({ localStream });
         this.localVideoRef.current.srcObject = localStream;
       } catch (error) {
-        console.error('mediaDevice.getUserMedia() error:', error);
+        console.error("mediaDevice.getUserMedia() error:", error);
       }
     }
   }
@@ -179,17 +195,17 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
   private startRemoteVideo(remoteStream: MediaStream) {
     if (this.remoteVideoRef.current) {
       this.remoteVideoRef.current.srcObject = remoteStream;
-      console.log('play remote video');
+      console.log("play remote video");
     }
   }
 
   private prepareNewConnection(isOffer: boolean) {
     const peer = new RTCPeerConnection(peerConnectionConfig);
-    if ('ontrack' in peer) {
+    if ("ontrack" in peer) {
       const tracks: MediaStreamTrack[] = [];
       peer.ontrack = (event: RTCTrackEvent) => {
         tracks.push(event.track);
-        console.log('-- peer.ontrack()', event);
+        console.log("-- peer.ontrack()", event);
         const mediaStream = new MediaStream(tracks);
         this.startRemoteVideo(mediaStream);
       };
@@ -205,85 +221,87 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
 
     peer.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
       if (event.candidate) {
-        console.log('-- peer.onicecandidate()', event.candidate);
+        console.log("-- peer.onicecandidate()", event.candidate);
         const candidate = event.candidate;
         if (this.state.ws) {
-          const message = JSON.stringify({ type: 'candidate', ice: candidate });
+          const message = JSON.stringify({ type: "candidate", ice: candidate });
           this.state.ws.send(message);
         }
       } else {
-        console.log('empty ice event');
+        console.log("empty ice event");
       }
     };
 
     peer.onnegotiationneeded = async () => {
       if (this.state.isNegotiating) {
-        console.log('SKIP nested negotiations');
+        console.log("SKIP nested negotiations");
         return;
       }
       try {
-        this.setState({isNegotiating: true});
+        this.setState({ isNegotiating: true });
         if (isOffer) {
           const offer = await peer.createOffer({
             offerToReceiveAudio: true,
-            offerToReceiveVideo: true,
+            offerToReceiveVideo: true
           });
-          console.log('createOffer() succsess in promise');
+          console.log("createOffer() succsess in promise");
           await peer.setLocalDescription(offer);
-          console.log('setLocalDescription() succsess in promise');
+          console.log("setLocalDescription() succsess in promise");
           if (peer.localDescription) {
             this.sendSdp(peer.localDescription);
           }
-          this.setState({isNegotiating: false});
+          this.setState({ isNegotiating: false });
         }
       } catch (error) {
-        console.error('setLocalDescription(offer) ERROR: ', error);
+        console.error("setLocalDescription(offer) ERROR: ", error);
       }
     };
 
     peer.oniceconnectionstatechange = () => {
-      console.log('ICE connection Status has changed to ' + peer.iceConnectionState);
+      console.log(
+        "ICE connection Status has changed to " + peer.iceConnectionState
+      );
       switch (peer.iceConnectionState) {
-        case 'connected':
-          this.setState({isNegotiating: false});
+        case "connected":
+          this.setState({ isNegotiating: false });
           break;
-        case 'closed':
-        case 'failed':
+        case "closed":
+        case "failed":
           if (this.state.peer) {
             this.disconnect();
           }
           break;
-        case 'disconnected':
+        case "disconnected":
           break;
       }
     };
 
     peer.onsignalingstatechange = () => {
-      console.log('signaling state changes:', peer.signalingState);
+      console.log("signaling state changes:", peer.signalingState);
     };
 
     if (this.state.localStream) {
       const videoTrack = this.state.localStream.getVideoTracks()[0];
       const audioTrack = this.state.localStream.getAudioTracks()[0];
       if (videoTrack) {
-          peer.addTrack(videoTrack, this.state.localStream);
-        }
+        peer.addTrack(videoTrack, this.state.localStream);
+      }
       if (audioTrack) {
-          peer.addTrack(audioTrack, this.state.localStream);
-        }
+        peer.addTrack(audioTrack, this.state.localStream);
+      }
     } else {
-      console.warn('no local stream, but continue.');
+      console.warn("no local stream, but continue.");
     }
-    this.setState({peer});
+    this.setState({ peer });
   }
 
   private async setAnswer(sessionDescription: RTCSessionDescription) {
     if (this.state.peer) {
       try {
         await this.state.peer.setRemoteDescription(sessionDescription);
-        console.log('setRemoteDescription(answer) success in promise');
+        console.log("setRemoteDescription(answer) success in promise");
       } catch (error) {
-        console.error('setRemoteDescription(answer) ERROR: ', error);
+        console.error("setRemoteDescription(answer) ERROR: ", error);
       }
     }
   }
@@ -298,7 +316,7 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
           this.sendSdp(localDescription);
         }
       } catch (error) {
-        console.error('makeAnswer ERROR: ', error);
+        console.error("makeAnswer ERROR: ", error);
       }
     }
   }
@@ -308,40 +326,39 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
     try {
       if (this.state.peer) {
         await this.state.peer.setRemoteDescription(sessionDescription);
-        console.log('setRemoteDescription(answer) success in promise');
+        console.log("setRemoteDescription(answer) success in promise");
         this.makeAnswer();
       }
     } catch (error) {
-      console.error('setRemoteDescription(offer) ERROR: ', error);
+      console.error("setRemoteDescription(offer) ERROR: ", error);
     }
   }
 
   private sendSdp(sessionDescription: RTCSessionDescription) {
     if (this.state.ws) {
-      console.log('---sending sdp ---');
+      console.log("---sending sdp ---");
       const message = JSON.stringify(sessionDescription);
-      console.log('sending SDP=' + message);
+      console.log("sending SDP=" + message);
       this.state.ws.send(message);
     }
   }
 
   private onChangeWsUrl(event: React.ChangeEvent<HTMLInputElement>) {
-    this.setState({wsUrl: event.target.value});
+    this.setState({ wsUrl: event.target.value });
   }
 
   private onChangeRoomId(event: React.ChangeEvent<HTMLInputElement>) {
-    this.setState({roomId: event.target.value});
+    this.setState({ roomId: event.target.value });
   }
 
   private addIceCandidate(candidate: RTCIceCandidate) {
-    console.log('add ice candidate', candidate);
+    console.log("add ice candidate", candidate);
     if (this.state.peer) {
       this.state.peer.addIceCandidate(candidate);
     } else {
-      console.error('PeerConnection does not exist!');
+      console.error("PeerConnection does not exist!");
     }
   }
-
 }
 
 export default P2PSimple;
@@ -362,7 +379,7 @@ const Inputs = styled.div`
   z-index: 3;
   top: 50%;
   left: 50%;
-  transform: translate(-50%,-50%);
+  transform: translate(-50%, -50%);
   top: 80px;
 `;
 const Input = styled.div`
@@ -418,4 +435,3 @@ const LocalVideo = styled.video`
   position: absolute;
   transition: opacity 1s;
 `;
-

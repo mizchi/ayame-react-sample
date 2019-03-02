@@ -1,14 +1,12 @@
 {
-  "name": "ayame-react-sample",
-  "version": "0.0.1",
+  "private": true,
   "author": "Shiguredo Inc.",
   "license": "Apache License 2.0",
-  "main": "src/index.ts",
   "scripts": {
     "serve": "webpack-serve",
     "build": "NODE_ENV=production webpack",
-    "lint": "tslint src/**/*.ts --format stylish",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "typecheck": "tsc -p . --noEmit"
   },
   "repository": {
     "type": "git",
@@ -26,10 +24,9 @@
     "@types/styled-components": "^4.1.10",
     "@types/webpack-env": "^1.13.7",
     "@types/webrtc": "^0.0.24",
-    "awesome-typescript-loader": "^5.2.1",
     "html-webpack-plugin": "^3.2.0",
     "source-map-loader": "^0.2.4",
-    "tslint": "^5.12.1",
+    "ts-loader": "^5.3.3",
     "webpack": "^4.29.3",
     "webpack-cli": "^3.2.3",
     "webpack-serve": "^2.0.3"

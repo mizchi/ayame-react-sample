@@ -1,10 +1,11 @@
 const path = require("path");
 const webpack = require("webpack");
 const htmlWebpackPlugin = require("html-webpack-plugin");
+
 module.exports = (env, argv) => {
   const mode = process.env.NODE_ENV || "development";
   const isProduction = mode === "production";
-return {
+  return {
     mode: mode,
     entry: {
       main: [path.resolve(__dirname, "src/index.tsx")]
@@ -20,19 +21,23 @@ return {
     optimization: {
       splitChunks: {
         name: "vendor",
-        chunks: "initial",
+        chunks: "initial"
       }
     },
     module: {
       rules: [
-        { test: /\.tsx?$/, loader: "awesome-typescript-loader" },
+        {
+          test: /\.tsx?$/,
+          loader: "ts-loader",
+          options: { transpileOnly: true }
+        },
         { enforce: "pre", test: /\.js$/, loader: "source-map-loader" }
       ]
     },
     plugins: [
       new htmlWebpackPlugin({
-        template: path.resolve(__dirname, "src/index.html"),
+        template: path.resolve(__dirname, "src/index.html")
       })
     ]
-  }
-}
+  };
+};

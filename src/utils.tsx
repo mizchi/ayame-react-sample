@@ -1,9 +1,7 @@
-export function randomString(strLength: number) {
-  const result = [];
-  strLength = strLength || 5;
-  const charSet = '0123456789';
-  while (strLength--) {
-    result.push(charSet.charAt(Math.floor(Math.random() * charSet.length)));
-  }
-  return result.join('');
+const charSet = "0123456789";
+
+export function randomString(strLength: number = 5) {
+  return [...Array(strLength).keys()]
+    .map(() => charSet.charAt(Math.floor(Math.random() * charSet.length)))
+    .join("");
 }
