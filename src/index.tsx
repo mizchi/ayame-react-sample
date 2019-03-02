@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import P2PSimple from "./components/P2PSimple";
+import App from "./components/App";
 import { createGlobalStyle } from "styled-components";
 
 const GlobalStyle = createGlobalStyle`
@@ -21,7 +21,7 @@ const GlobalStyle = createGlobalStyle`
 ReactDOM.render(
   <>
     <GlobalStyle />
-    <P2PSimple title="Ayame React Sample" />
+    <App />
   </>,
   document.getElementById("root")
 );

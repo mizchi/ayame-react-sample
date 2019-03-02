@@ -1,55 +1,41 @@
-import * as React from "react";
+import React from "react";
 import styled from "styled-components";
 import { randomString } from "../utils";
 
-export interface P2PSimpleProps {
-  title: string;
-}
+type Props = {
+  localStream: MediaStream | null;
+  onStartRemoteStream: (stream: MediaStream) => void;
+  onCloseRemoteStream: () => void;
+};
 
-export interface P2PSimpleState {
+type State = {
   isNegotiating: boolean;
   wsUrl: string;
   ws: WebSocket | null;
   peer: RTCPeerConnection | null;
-  localStream: MediaStream | null;
   roomId: string;
   clientId: string;
-}
+};
 
-const initialState: P2PSimpleState = {
+const initialState: State = {
   isNegotiating: false,
   wsUrl: "ws://localhost:3000/ws",
   ws: null,
   peer: null,
-  localStream: null,
   roomId: randomString(9),
   clientId: randomString(17)
 };
 
 const iceServers = [{ urls: "stun:stun.l.google.com:19302" }];
-
 const peerConnectionConfig = {
   iceServers
 };
 
-class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
-  private localVideoRef = React.createRef<HTMLVideoElement>();
-  private remoteVideoRef = React.createRef<HTMLVideoElement>();
-
+export default class P2PNegotiator extends React.Component<Props, State> {
   state = initialState;
-
-  constructor(props: P2PSimpleProps) {
-    super(props);
-    this.localVideoRef = React.createRef();
-    this.remoteVideoRef = React.createRef();
-  }
-
-  public render() {
+  render() {
     return (
-      <Main>
-        <Title>
-          <h2>{this.props.title}</h2>
-        </Title>
+      <>
         <Inputs>
           <Input>
             <label htmlFor="url">シグナリングサーバのURL:</label>
@@ -80,19 +66,9 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
             切断
           </Button>
         </Buttons>
-        <Videos>
-          <RemoteVideo ref={this.remoteVideoRef} autoPlay />
-          <LocalVideo ref={this.localVideoRef} autoPlay muted />
-        </Videos>
-      </Main>
+      </>
     );
   }
-
-  public componentDidMount() {
-    // ローカルビデオを再生する
-    this.startLocalVideo();
-  }
-
   public connect() {
     this.setState({ isNegotiating: false });
     // 新規に websocket を作成
@@ -160,11 +136,9 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
     };
     this.setState({ ws });
   }
-
   public disconnect(): void {
     if (this.state.peer) {
       if (this.state.peer.iceConnectionState !== "closed") {
-        // peer connection を閉じる
         this.state.peer.close();
       }
       if (this.state.ws && this.state.ws.readyState < 2) {
@@ -172,33 +146,11 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
       }
       this.setState({ peer: null, ws: null });
     }
-    if (this.remoteVideoRef.current) {
-      this.remoteVideoRef.current.srcObject = null;
-    }
+    this.props.onCloseRemoteStream();
   }
-
-  private async startLocalVideo() {
-    if (this.localVideoRef.current) {
-      try {
-        const localStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true
-        });
-        this.setState({ localStream });
-        this.localVideoRef.current.srcObject = localStream;
-      } catch (error) {
-        console.error("mediaDevice.getUserMedia() error:", error);
-      }
-    }
-  }
-
   private startRemoteVideo(remoteStream: MediaStream) {
-    if (this.remoteVideoRef.current) {
-      this.remoteVideoRef.current.srcObject = remoteStream;
-      console.log("play remote video");
-    }
+    this.props.onStartRemoteStream(remoteStream);
   }
-
   private prepareNewConnection(isOffer: boolean) {
     const peer = new RTCPeerConnection(peerConnectionConfig);
     if ("ontrack" in peer) {
@@ -218,7 +170,6 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
         }
       };
     }
-
     peer.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
       if (event.candidate) {
         console.log("-- peer.onicecandidate()", event.candidate);
@@ -231,7 +182,6 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
         console.log("empty ice event");
       }
     };
-
     peer.onnegotiationneeded = async () => {
       if (this.state.isNegotiating) {
         console.log("SKIP nested negotiations");
@@ -256,7 +206,6 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
         console.error("setLocalDescription(offer) ERROR: ", error);
       }
     };
-
     peer.oniceconnectionstatechange = () => {
       console.log(
         "ICE connection Status has changed to " + peer.iceConnectionState
@@ -275,26 +224,23 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
           break;
       }
     };
-
     peer.onsignalingstatechange = () => {
       console.log("signaling state changes:", peer.signalingState);
     };
-
-    if (this.state.localStream) {
-      const videoTrack = this.state.localStream.getVideoTracks()[0];
-      const audioTrack = this.state.localStream.getAudioTracks()[0];
+    if (this.props.localStream) {
+      const videoTrack = this.props.localStream.getVideoTracks()[0];
+      const audioTrack = this.props.localStream.getAudioTracks()[0];
       if (videoTrack) {
-        peer.addTrack(videoTrack, this.state.localStream);
+        peer.addTrack(videoTrack, this.props.localStream);
       }
       if (audioTrack) {
-        peer.addTrack(audioTrack, this.state.localStream);
+        peer.addTrack(audioTrack, this.props.localStream);
       }
     } else {
       console.warn("no local stream, but continue.");
     }
     this.setState({ peer });
   }
-
   private async setAnswer(sessionDescription: RTCSessionDescription) {
     if (this.state.peer) {
       try {
@@ -305,7 +251,6 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
       }
     }
   }
-
   private async makeAnswer() {
     if (this.state.peer) {
       try {
@@ -320,7 +265,6 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
       }
     }
   }
-
   private async setOffer(sessionDescription: RTCSessionDescription) {
     this.prepareNewConnection(false);
     try {
@@ -333,7 +277,6 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
       console.error("setRemoteDescription(offer) ERROR: ", error);
     }
   }
-
   private sendSdp(sessionDescription: RTCSessionDescription) {
     if (this.state.ws) {
       console.log("---sending sdp ---");
@@ -342,15 +285,12 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
       this.state.ws.send(message);
     }
   }
-
   private onChangeWsUrl(event: React.ChangeEvent<HTMLInputElement>) {
     this.setState({ wsUrl: event.target.value });
   }
-
   private onChangeRoomId(event: React.ChangeEvent<HTMLInputElement>) {
     this.setState({ roomId: event.target.value });
   }
-
   private addIceCandidate(candidate: RTCIceCandidate) {
     console.log("add ice candidate", candidate);
     if (this.state.peer) {
@@ -360,20 +300,6 @@ class P2PSimple extends React.Component<P2PSimpleProps, P2PSimpleState> {
     }
   }
 }
-
-export default P2PSimple;
-
-const Main = styled.div`
-  text-align: center;
-`;
-const Title = styled.div`
-  position: absolute;
-  z-index: 3;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  top: 40px;
-`;
 const Inputs = styled.div`
   position: absolute;
   z-index: 3;
@@ -385,7 +311,6 @@ const Inputs = styled.div`
 const Input = styled.div`
   display: inline-block;
 `;
-
 const Button = styled.button`
   background-color: #4285f4;
   border: none;
@@ -405,33 +330,4 @@ const Buttons = styled.div`
   left: 50%;
   transform: translate(-50%, -50%);
   top: 140px;
-`;
-const Videos = styled.div`
-  font-size: 0;
-  pointer-events: none;
-  position: absolute;
-  transition: all 1s;
-  width: 100%;
-  height: 100%;
-  display: block;
-`;
-
-const RemoteVideo = styled.video`
-  height: 100%;
-  max-height: 100%;
-  max-width: 100%;
-  object-fit: cover;
-  transform: scale(-1, 1);
-  transition: opacity 1s;
-  width: 100%;
-`;
-const LocalVideo = styled.video`
-  z-index: 2;
-  border: 1px solid gray;
-  bottom: 20px;
-  right: 20px;
-  max-height: 17%;
-  max-width: 17%;
-  position: absolute;
-  transition: opacity 1s;
 `;
