@@ -6,7 +6,7 @@ import React, {
   useLayoutEffect
 } from "react";
 import styled from "styled-components";
-import P2PNegotiator from "./P2PNegotiactor";
+import P2PNegotiator from "./P2PNegotiator";
 
 export default function App() {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
